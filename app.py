@@ -745,6 +745,108 @@ def generate_full_report_pdf(intel: dict, brief: dict, campaign: dict) -> bytes:
 
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
+def render_architecture_flowchart():
+    st.markdown("""
+<div style="background:#161b22;border:1px solid #30363d;border-radius:16px;padding:28px 32px;margin:4px 0 8px;">
+
+  <!-- Trigger Node -->
+  <div style="text-align:center;margin-bottom:6px;">
+    <div style="display:inline-block;background:#1a2332;border:1.5px solid #58a6ff;border-radius:12px;padding:12px 32px;">
+      <div style="font-size:1rem;font-weight:700;color:#58a6ff;">🚀 Trigger Layer</div>
+      <div style="font-size:0.78rem;color:#8b949e;margin-top:3px;">Manual &nbsp;·&nbsp; Scheduled &nbsp;·&nbsp; Event-Driven</div>
+    </div>
+  </div>
+  <div style="text-align:center;font-size:1.4rem;color:#58a6ff;line-height:1.1;">↓</div>
+
+  <!-- Research Agent -->
+  <div style="background:#0d1a2e;border:1.5px solid #58a6ff;border-radius:12px;padding:18px 20px;margin-bottom:0;">
+    <div style="text-align:center;font-size:0.95rem;font-weight:800;color:#58a6ff;margin-bottom:12px;letter-spacing:0.04em;">🔬 RESEARCH AGENT</div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-bottom:12px;flex-wrap:wrap;">
+      <div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:7px 14px;font-size:0.78rem;color:#c9d1d9;">🌐 Web Search</div>
+      <div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:7px 14px;font-size:0.78rem;color:#c9d1d9;">📱 Social Listening</div>
+      <div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:7px 14px;font-size:0.78rem;color:#c9d1d9;">🔍 Competitor Analysis</div>
+    </div>
+    <div style="text-align:center;">
+      <span style="background:#162032;border:1px dashed #58a6ff;border-radius:8px;padding:7px 18px;font-size:0.8rem;color:#58a6ff;">
+        📄 Intel Report JSON &nbsp;·&nbsp; threat_level &nbsp;·&nbsp; findings &nbsp;·&nbsp; recommendations
+      </span>
+    </div>
+  </div>
+  <div style="text-align:center;font-size:1.4rem;color:#58a6ff;line-height:1.1;">↓</div>
+
+  <!-- Analyst Agent -->
+  <div style="background:#1a0d2e;border:1.5px solid #bc8cff;border-radius:12px;padding:18px 20px;margin-bottom:0;">
+    <div style="text-align:center;font-size:0.95rem;font-weight:800;color:#bc8cff;margin-bottom:12px;letter-spacing:0.04em;">🧭 ANALYST AGENT</div>
+    <!-- Triage row -->
+    <div style="display:flex;gap:14px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <div style="flex:2;min-width:130px;background:#21262d;border:1px solid #30363d;border-radius:8px;padding:9px 14px;text-align:center;">
+        <div style="font-size:0.78rem;font-weight:700;color:#e6edf3;">Signal Triage</div>
+        <div style="font-size:0.68rem;color:#8b949e;margin-top:2px;">threat_level · findings · urgency</div>
+      </div>
+      <div style="flex:1;min-width:100px;display:flex;flex-direction:column;gap:5px;align-items:flex-start;">
+        <div style="background:#1a0f0f;border:1px solid #f85149;border-radius:6px;padding:4px 10px;font-size:0.72rem;color:#f85149;white-space:nowrap;">🔴 Low → Monitor Only &nbsp;(log &amp; exit)</div>
+        <div style="background:#0d1a0d;border:1px solid #3fb950;border-radius:6px;padding:4px 10px;font-size:0.72rem;color:#3fb950;white-space:nowrap;">🟢 High/Medium → Respond Now ↓</div>
+      </div>
+    </div>
+    <!-- Sub-modules -->
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
+      <div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:8px 12px;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:#e6edf3;">Posture Selector</div>
+        <div style="font-size:0.67rem;color:#8b949e;margin-top:2px;">Defensive · Offensive · Flanking</div>
+      </div>
+      <div style="color:#bc8cff;font-size:1rem;">→</div>
+      <div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:8px 12px;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:#e6edf3;">ICP Router</div>
+        <div style="font-size:0.67rem;color:#8b949e;margin-top:2px;">Fitness · Professional · Snacker</div>
+      </div>
+      <div style="color:#bc8cff;font-size:1rem;">→</div>
+      <div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:8px 12px;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:#e6edf3;">Brief Constructor</div>
+        <div style="font-size:0.67rem;color:#8b949e;margin-top:2px;">Objective · Channels · Constraints</div>
+      </div>
+    </div>
+    <div style="text-align:center;">
+      <span style="background:#1a1232;border:1px dashed #bc8cff;border-radius:8px;padding:7px 18px;font-size:0.8rem;color:#bc8cff;">
+        📄 Campaign Brief JSON &nbsp;·&nbsp; posture &nbsp;·&nbsp; ICP segment &nbsp;·&nbsp; constraints &nbsp;·&nbsp; urgency
+      </span>
+    </div>
+  </div>
+  <div style="text-align:center;font-size:1.4rem;color:#58a6ff;line-height:1.1;">↓</div>
+
+  <!-- Campaign Creator Agent -->
+  <div style="background:#0d1a0d;border:1.5px solid #3fb950;border-radius:12px;padding:18px 20px;">
+    <div style="text-align:center;font-size:0.95rem;font-weight:800;color:#3fb950;margin-bottom:12px;letter-spacing:0.04em;">🎨 CAMPAIGN CREATOR AGENT</div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
+      <div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:8px 12px;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:#e6edf3;">Stage 1</div>
+        <div style="font-size:0.67rem;color:#8b949e;margin-top:2px;">Strategic Positioning</div>
+      </div>
+      <div style="color:#3fb950;font-size:1rem;">→</div>
+      <div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:8px 12px;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:#e6edf3;">Stage 2</div>
+        <div style="font-size:0.67rem;color:#8b949e;margin-top:2px;">Copy Generation</div>
+      </div>
+      <div style="color:#3fb950;font-size:1rem;">→</div>
+      <div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:8px 12px;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:#e6edf3;">Stage 3</div>
+        <div style="font-size:0.67rem;color:#8b949e;margin-top:2px;">Visual Direction</div>
+      </div>
+      <div style="color:#3fb950;font-size:1rem;">→</div>
+      <div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:8px 12px;text-align:center;">
+        <div style="font-size:0.75rem;font-weight:700;color:#e6edf3;">Stage 4</div>
+        <div style="font-size:0.67rem;color:#8b949e;margin-top:2px;">Channel Plan &amp; Budget</div>
+      </div>
+    </div>
+    <div style="text-align:center;">
+      <span style="background:#0d2310;border:1px dashed #3fb950;border-radius:8px;padding:7px 18px;font-size:0.8rem;color:#3fb950;">
+        🎯 Full Campaign Package &nbsp;·&nbsp; copy &nbsp;·&nbsp; visuals &nbsp;·&nbsp; budget &nbsp;·&nbsp; A/B tests &nbsp;·&nbsp; KPIs
+      </span>
+    </div>
+  </div>
+
+</div>""", unsafe_allow_html=True)
+
+
 def render_pipeline_header(stage: str):
     """stage: 'idle' | 'intel_done' | 'orch_done' | 'complete'"""
     intel_done = stage in ("intel_done", "orch_done", "complete")
@@ -943,6 +1045,9 @@ st.markdown("""
   <h1>🚀 RiteBite AI Marketing Co-Pilot</h1>
   <p>End-to-end autonomous pipeline: Research Agent → Analyst Agent → Campaign Creator Agent</p>
 </div>""", unsafe_allow_html=True)
+
+with st.expander("🗺️ View Pipeline Architecture", expanded=False):
+    render_architecture_flowchart()
 
 # Determine pipeline display state
 has_intel    = "report" in st.session_state and st.session_state.report
