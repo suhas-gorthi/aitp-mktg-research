@@ -29,10 +29,10 @@ st.markdown(
     border: 1px solid #30363d; border-radius: 16px;
     padding: 36px 40px 28px; margin-bottom: 24px;
   }
-  .hero h1 { font-size: 2.1rem; font-weight: 800; margin: 0 0 6px;
+  .hero h1 { font-size: 2.1rem; font-weight: 800; margin: 0 0 6px; text-align: center;
     background: linear-gradient(90deg, #58a6ff, #bc8cff);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .hero p { color: #8b949e; font-size: 1rem; margin: 0; }
+  .hero p { color: #8b949e; font-size: 1rem; margin: 0; text-align: center; }
 
   /* pipeline */
   .pipeline {
