@@ -2,6 +2,8 @@ import json
 import os
 from datetime import datetime
 
+import io
+
 import anthropic
 import streamlit as st
 from fpdf import FPDF
