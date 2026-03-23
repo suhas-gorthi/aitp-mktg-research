@@ -230,12 +230,16 @@ Return ONLY a valid JSON object matching this exact schema — no commentary, no
 
 
 # ── Agent function ────────────────────────────────────────────────────────────
+@st.cache_resource
+def get_client(api_key: str):
+    return anthropic.Anthropic(api_key=api_key)
+
+
 def run_agent(competitor_name: str, api_key: str) -> dict:
-    client = anthropic.Anthropic(api_key=api_key)
+    client = get_client(api_key)
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=4096,
-        thinking={"type": "adaptive"},
         system=SYSTEM_PROMPT,
         messages=[
             {
