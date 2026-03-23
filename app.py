@@ -746,25 +746,27 @@ def generate_full_report_pdf(intel: dict, brief: dict, campaign: dict) -> bytes:
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
 def render_pipeline_header(stage: str):
-    """stage: 'intel' | 'orch' | 'campaign'"""
-    s = lambda label, active, done: (
-        f'<div class="pipe-step {"active" if active else "done" if done else "idle"}">'
-        f'<div class="icon">{"✅" if done else ("⚡" if active else "⬜")}</div>'
-        f'<div class="label">{label}</div></div>'
-    )
-    intel_done  = stage in ("orch", "campaign")
-    orch_done   = stage == "campaign"
-    intel_act   = stage == "intel"
-    orch_act    = stage == "orch"
-    camp_act    = stage == "campaign"
+    """stage: 'idle' | 'intel_done' | 'orch_done' | 'complete'"""
+    intel_done = stage in ("intel_done", "orch_done", "complete")
+    orch_done  = stage in ("orch_done", "complete")
+    camp_done  = stage == "complete"
+
+    def step(base_icon, label, done):
+        cls  = "done" if done else "idle"
+        icon = "✅" if done else base_icon
+        return (
+            f'<div class="pipe-step {cls}">'
+            f'<div class="icon">{icon}</div>'
+            f'<div class="label">{label}</div></div>'
+        )
 
     st.markdown(f"""
 <div class="pipeline">
-  {s("Research Agent<br><small>Intelligence Report</small>", intel_act, intel_done)}
+  {step("🔬", "Research Agent<br><small>Intelligence Report</small>", intel_done)}
   <div class="pipe-arrow">→</div>
-  {s("Analyst Agent<br><small>Strategic Brief</small>", orch_act, orch_done)}
+  {step("🧭", "Analyst Agent<br><small>Strategic Brief</small>", orch_done)}
   <div class="pipe-arrow">→</div>
-  {s("Campaign Creator Agent<br><small>Campaign Package</small>", camp_act, False)}
+  {step("🎨", "Campaign Creator Agent<br><small>Campaign Package</small>", camp_done)}
 </div>""", unsafe_allow_html=True)
 
 
@@ -948,23 +950,23 @@ has_brief    = "brief" in st.session_state and st.session_state.brief
 has_campaign = "campaign" in st.session_state and st.session_state.campaign
 
 if has_campaign:
-    render_pipeline_header("campaign")
+    render_pipeline_header("complete")
 elif has_brief:
-    render_pipeline_header("orch")
+    render_pipeline_header("orch_done")
 elif has_intel:
-    render_pipeline_header("orch")
+    render_pipeline_header("intel_done")
 else:
-    render_pipeline_header("intel")
+    render_pipeline_header("idle")
 
 api_key = os.environ.get("ANTHROPIC_API_KEY", "")
 
-# ── STAGE 1: Research Agent ───────────────────────────────────────────────────
+# ── Competitor Selection ───────────────────────────────────────────────────────
 st.markdown("""
 <div class="stage-header">
-  <div class="stage-badge">RESEARCH AGENT</div>
+  <div class="stage-badge">SELECT COMPETITOR</div>
   <div>
-    <div class="stage-title">🔍 Competitive Intelligence Research Agent</div>
-    <div class="stage-sub">Select a competitor and generate a structured intelligence report</div>
+    <div class="stage-title">🎯 Choose a Competitor to Analyse</div>
+    <div class="stage-sub">The full pipeline — Research Agent → Analyst Agent → Campaign Creator Agent — runs automatically</div>
   </div>
 </div>""", unsafe_allow_html=True)
 
@@ -1002,31 +1004,106 @@ with st.expander("🔎 Or enter a custom competitor"):
 st.markdown("<br>", unsafe_allow_html=True)
 competitor = st.session_state.selected_competitor
 
+# ── Single Pipeline Button ─────────────────────────────────────────────────────
 col_btn, col_info = st.columns([2, 3])
 with col_btn:
-    run_intel = st.button(f"🚀 Run Research Agent — {competitor}", key="run_intel", use_container_width=True)
+    run_pipeline = st.button(
+        f"🚀 Run AI Marketing Co-Pilot — {competitor}",
+        key="run_pipeline",
+        use_container_width=True,
+    )
 with col_info:
-    st.markdown(f"""
+    st.markdown("""
 <div style='background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 18px;font-size:0.85rem;color:#8b949e;'>
-  <strong style='color:#e6edf3;'>Research Agent pipeline:</strong><br>
-  Competitor input → LLM analysis → Structured intelligence JSON<br>
-  <strong style='color:#e6edf3;'>Model:</strong> Claude Sonnet 4.6
+  <strong style='color:#e6edf3;'>Autonomous pipeline:</strong><br>
+  🔬 Research Agent &nbsp;→&nbsp; 🧭 Analyst Agent &nbsp;→&nbsp; 🎨 Campaign Creator Agent<br>
+  <strong style='color:#e6edf3;'>Model:</strong> Claude Sonnet 4.6 &nbsp;·&nbsp;
+  <strong style='color:#e6edf3;'>Agents:</strong> 3 &nbsp;·&nbsp;
+  <strong style='color:#e6edf3;'>Outputs:</strong> Intel report · Strategic brief · Full campaign package
 </div>""", unsafe_allow_html=True)
 
-if run_intel:
+# ── Pipeline Execution ─────────────────────────────────────────────────────────
+if run_pipeline:
     if not api_key:
         st.error("⚠️ ANTHROPIC_API_KEY environment variable is not set.")
     else:
         for k in ("report", "brief", "campaign"):
             st.session_state.pop(k, None)
-        with st.spinner(f"🔬 Researching **{competitor}** — synthesizing competitive intelligence..."):
+
+        pipeline_ok = True
+        with st.status("🚀 Running AI Marketing Co-Pilot...", expanded=True) as status:
+
+            # Stage 1: Research Agent
+            st.write(f"🔬 **Research Agent** — analysing *{competitor}*...")
             try:
                 st.session_state.report = run_intel_agent(competitor, api_key)
+                threat = st.session_state.report.get("threat_level", "")
+                st.write(f"✅ Research Agent complete — Threat level: **{threat}**")
             except Exception as e:
-                st.error(f"❌ Agent error: {e}")
+                st.error(f"❌ Research Agent error: {e}")
+                status.update(label="Pipeline failed at Research Agent", state="error")
+                pipeline_ok = False
 
+            # Stage 2: Analyst Agent
+            if pipeline_ok:
+                st.write("🧭 **Analyst Agent** — triaging signal and building strategic brief...")
+                try:
+                    st.session_state.brief = run_orchestrator(st.session_state.report, api_key)
+                    triage = st.session_state.brief.get("orchestrator_decisions", {}).get("triage_result", "")
+                    posture = st.session_state.brief.get("orchestrator_decisions", {}).get("strategic_posture", "")
+                    st.write(f"✅ Analyst Agent complete — Triage: **{triage}** · Posture: **{posture}**")
+                except Exception as e:
+                    st.error(f"❌ Analyst Agent error: {e}")
+                    status.update(label="Pipeline failed at Analyst Agent", state="error")
+                    pipeline_ok = False
+
+            # Stage 3: Campaign Creator Agent (skipped if MONITOR_ONLY)
+            if pipeline_ok:
+                triage = st.session_state.brief.get("orchestrator_decisions", {}).get("triage_result", "")
+                if triage == "MONITOR_ONLY":
+                    st.write("👁️ **Campaign Creator Agent** — skipped (triage result: MONITOR ONLY)")
+                    status.update(
+                        label="Pipeline complete — no campaign warranted (Monitor Only)",
+                        state="complete",
+                    )
+                else:
+                    st.write("🎨 **Campaign Creator Agent** — generating full campaign package...")
+                    try:
+                        st.session_state.campaign = run_campaign_creator(st.session_state.brief, api_key)
+                        campaign_name = st.session_state.campaign.get("campaign_name", "")
+                        st.write(f"✅ Campaign Creator Agent complete — *{campaign_name}*")
+                        status.update(
+                            label=f"✅ Pipeline complete — full campaign package ready",
+                            state="complete",
+                        )
+                    except Exception as e:
+                        st.error(f"❌ Campaign Creator Agent error: {e}")
+                        status.update(label="Pipeline failed at Campaign Creator Agent", state="error")
+
+        # Refresh state flags after execution
+        has_intel    = "report" in st.session_state and st.session_state.report
+        has_brief    = "brief" in st.session_state and st.session_state.brief
+        has_campaign = "campaign" in st.session_state and st.session_state.campaign
+
+# ── Results: idle placeholder ──────────────────────────────────────────────────
+if not has_intel and not run_pipeline:
+    st.markdown("""
+<div class="loading-box">
+  <div class="loading-title">Ready to run</div>
+  <div class="loading-sub">Select a competitor above and click <strong>Run AI Marketing Co-Pilot</strong>.</div>
+</div>""", unsafe_allow_html=True)
+
+# ── STAGE 1 Results: Research Agent ───────────────────────────────────────────
 if has_intel:
-    st.markdown("---")
+    st.markdown("""
+<div class="stage-header">
+  <div class="stage-badge">RESEARCH AGENT</div>
+  <div>
+    <div class="stage-title">🔍 Competitive Intelligence Research Agent</div>
+    <div class="stage-sub">Structured intelligence report</div>
+  </div>
+</div>""", unsafe_allow_html=True)
+
     st.markdown("## 📄 Intelligence Report")
     render_intel_report(st.session_state.report)
 
@@ -1039,108 +1116,56 @@ if has_intel:
         key="dl_intel",
     )
 
-elif not run_intel:
-    st.markdown("""
-<div class="loading-box">
-  <div class="loading-title">Ready to run</div>
-  <div class="loading-sub">Select a competitor above and click <strong>Run Research Agent</strong>.</div>
-</div>""", unsafe_allow_html=True)
-
-# ── STAGE 2: Analyst Agent ────────────────────────────────────────────────────
-if has_intel:
+# ── STAGE 2 Results: Analyst Agent ────────────────────────────────────────────
+if has_brief:
     st.markdown("""
 <div class="stage-header">
   <div class="stage-badge">ANALYST AGENT</div>
   <div>
     <div class="stage-title">🧭 Strategic Analyst Agent</div>
-    <div class="stage-sub">Triages the intelligence report → selects posture → routes ICP → constructs campaign brief</div>
+    <div class="stage-sub">Signal triage · Strategic posture · ICP routing · Campaign brief</div>
   </div>
 </div>""", unsafe_allow_html=True)
 
-    col_o, col_oi = st.columns([2, 3])
-    with col_o:
-        run_orch = st.button("🧭 Run Analyst Agent", key="run_orch", use_container_width=True)
-    with col_oi:
+    brief = st.session_state.brief
+    triage = brief.get("orchestrator_decisions", {}).get("triage_result", "")
+
+    st.markdown("## 🧭 Analyst Agent Brief")
+    render_orchestrator_brief(brief)
+
+    if triage == "MONITOR_ONLY":
         st.markdown("""
-<div style='background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 18px;font-size:0.85rem;color:#8b949e;'>
-  <strong style='color:#e6edf3;'>Analyst Agent pipeline:</strong><br>
-  Signal Triage → Posture Selector → ICP Router → Brief Constructor<br>
-  <strong style='color:#e6edf3;'>Triggers campaign only if:</strong> RESPOND_NOW or RESPOND_SCHEDULED
-</div>""", unsafe_allow_html=True)
-
-    if run_orch:
-        st.session_state.pop("brief", None)
-        st.session_state.pop("campaign", None)
-        with st.spinner("🧭 Analyst Agent analysing intelligence and constructing campaign brief..."):
-            try:
-                st.session_state.brief = run_orchestrator(st.session_state.report, api_key)
-            except Exception as e:
-                st.error(f"❌ Analyst Agent error: {e}")
-
-    if has_brief:
-        brief = st.session_state.brief
-        decisions = brief.get("orchestrator_decisions", {})
-        triage = decisions.get("triage_result", "")
-
-        st.markdown("---")
-        st.markdown("## 🧭 Analyst Agent Brief")
-        render_orchestrator_brief(brief)
-
-        if triage == "MONITOR_ONLY":
-            st.markdown("""
 <div class="triage-monitor" style="text-align:center;padding:24px;margin-top:16px">
   <div style="font-size:1.2rem;font-weight:700;margin-bottom:8px">👁️ MONITOR ONLY</div>
   <div style="font-size:0.9rem">This signal does not warrant a campaign response.
   The report has been logged for future reference. No campaign will be generated.</div>
 </div>""", unsafe_allow_html=True)
 
-# ── STAGE 3: Campaign Creator ─────────────────────────────────────────────────
-if has_brief and st.session_state.brief.get("orchestrator_decisions", {}).get("triage_result") != "MONITOR_ONLY":
+# ── STAGE 3 Results: Campaign Creator Agent ───────────────────────────────────
+if has_campaign:
     st.markdown("""
 <div class="stage-header">
   <div class="stage-badge">CAMPAIGN CREATOR AGENT</div>
   <div>
     <div class="stage-title">🎨 Campaign Creator Agent</div>
-    <div class="stage-sub">Generates full campaign package: positioning · copy · visual direction · channel plan</div>
+    <div class="stage-sub">Full campaign package: positioning · copy · visual direction · channel plan</div>
   </div>
 </div>""", unsafe_allow_html=True)
 
-    col_c, col_ci = st.columns([2, 3])
-    with col_c:
-        run_camp = st.button("🎨 Generate Campaign Package", key="run_campaign", use_container_width=True)
-    with col_ci:
-        brief_params = st.session_state.brief.get("campaign_parameters", {})
-        st.markdown(f"""
-<div style='background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 18px;font-size:0.85rem;color:#8b949e;'>
-  <strong style='color:#e6edf3;'>Campaign Creator pipeline:</strong><br>
-  Positioning → Copy → Visual Direction → Channel Plan<br>
-  <strong style='color:#e6edf3;'>Objective:</strong> {brief_params.get('objective','—')}
-</div>""", unsafe_allow_html=True)
+    st.markdown(f"## 🎯 Campaign Package: *{st.session_state.campaign.get('campaign_name','')}*")
+    st.markdown(f"<div style='color:#8b949e;font-size:0.9rem;margin-bottom:20px'>{st.session_state.campaign.get('competitive_context','')}</div>", unsafe_allow_html=True)
+    render_campaign(st.session_state.campaign)
 
-    if run_camp:
-        st.session_state.pop("campaign", None)
-        with st.spinner("🎨 Campaign Creator generating full campaign package across all stages..."):
-            try:
-                st.session_state.campaign = run_campaign_creator(st.session_state.brief, api_key)
-            except Exception as e:
-                st.error(f"❌ Campaign Creator error: {e}")
-
-    if has_campaign:
-        st.markdown("---")
-        st.markdown(f"## 🎯 Campaign Package: *{st.session_state.campaign.get('campaign_name','')}*")
-        st.markdown(f"<div style='color:#8b949e;font-size:0.9rem;margin-bottom:20px'>{st.session_state.campaign.get('competitive_context','')}</div>", unsafe_allow_html=True)
-        render_campaign(st.session_state.campaign)
-
-        # Full pipeline PDF — all three agents
-        st.markdown("<br>", unsafe_allow_html=True)
-        full_pdf = generate_full_report_pdf(st.session_state.report, st.session_state.brief, st.session_state.campaign)
-        st.download_button(
-            label="⬇️ Download Full Report PDF (Research Agent + Analyst Agent + Campaign Creator Agent)",
-            data=full_pdf,
-            file_name=f"ritebite_full_report_{competitor.replace(' ','_').lower()}_{datetime.now().strftime('%Y%m%d')}.pdf",
-            mime="application/pdf",
-            key="dl_campaign",
-        )
+    # Full pipeline PDF — all three agents
+    st.markdown("<br>", unsafe_allow_html=True)
+    full_pdf = generate_full_report_pdf(st.session_state.report, st.session_state.brief, st.session_state.campaign)
+    st.download_button(
+        label="⬇️ Download Full Report PDF (Research Agent + Analyst Agent + Campaign Creator Agent)",
+        data=full_pdf,
+        file_name=f"ritebite_full_report_{competitor.replace(' ','_').lower()}_{datetime.now().strftime('%Y%m%d')}.pdf",
+        mime="application/pdf",
+        key="dl_campaign",
+    )
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("""
